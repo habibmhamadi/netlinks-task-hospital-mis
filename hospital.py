@@ -8,14 +8,14 @@ class Hospital:
     def __init__(self):
        self.boldFont = Font(bold=True)
        self.sheets = ['Auth','Patients','Doctors','Departments','Appointments']
-       self.wb = self.__create_db_if_not_exists()
+       self.workbook = self.__create_db_if_not_exists()
 
     def __create_db_if_not_exists(self):
         '''creates and initializes the excel file if not exists.'''
         if not os.path.isfile('db.xlsx'):
-            wb = xl.Workbook()
+            workbook = xl.Workbook()
             for i in range(len(self.sheets)):
-                sheet = wb.create_sheet(self.sheets[i],i)
+                sheet = workbook.create_sheet(self.sheets[i],i)
                 sheet['A1'].font = self.boldFont
                 if i==0:
                     sheet['A1'].value = 'Rule'
@@ -29,24 +29,24 @@ class Hospital:
                     for j in ['A','B','C','D']: 
                         sheet.column_dimensions[j].width=22
                         sheet[j+str(1)].font = self.boldFont
-            wb['Patients']['A1'].value = 'ID'
-            wb['Patients']['B1'].value = 'NAME'
-            wb['Patients']['C1'].value = 'ADDRESS'
-            wb['Patients']['D1'].value = 'AGE'
+            workbook['Patients']['A1'].value = 'ID'
+            workbook['Patients']['B1'].value = 'NAME'
+            workbook['Patients']['C1'].value = 'ADDRESS'
+            workbook['Patients']['D1'].value = 'AGE'
 
-            wb['Doctors']['A1'].value = 'ID'
-            wb['Doctors']['B1'].value = 'NAME'
-            wb['Doctors']['C1'].value = 'DEPARTMENT'
+            workbook['Doctors']['A1'].value = 'ID'
+            workbook['Doctors']['B1'].value = 'NAME'
+            workbook['Doctors']['C1'].value = 'DEPARTMENT'
 
-            wb['Appointments']['A1'].value = 'ID'
-            wb['Appointments']['B1'].value = 'DOCTOR'
-            wb['Appointments']['C1'].value = 'PATIENT'
-            wb['Appointments']['D1'].value = 'DATE'
+            workbook['Appointments']['A1'].value = 'ID'
+            workbook['Appointments']['B1'].value = 'DOCTOR'
+            workbook['Appointments']['C1'].value = 'PATIENT'
+            workbook['Appointments']['D1'].value = 'DATE'
 
-            wb['Departments']['A1'].value = 'ID'
-            wb['Departments']['B1'].value = 'NAME'
-            wb.save('db.xlsx')
-            return wb
+            workbook['Departments']['A1'].value = 'ID'
+            workbook['Departments']['B1'].value = 'NAME'
+            workbook.save('db.xlsx')
+            return workbook
         else: return xl.load_workbook('db.xlsx')
 
     def __validate(self,field,pattern,err):
@@ -58,7 +58,7 @@ class Hospital:
 
     def __authenticate(self,level,pwd):
         '''Authenticates Admin/User by password.'''
-        auth = self.wb['Auth']
+        auth = self.workbook['Auth']
         return auth[level].value == pwd
 
     def __show_admin_menu(self):
@@ -100,7 +100,7 @@ class Hospital:
     def __create_dependent_field_if_not_exists(self,title,data):
         '''Checks if some dependent field of a sheet exists in its own sheet.'''
         if title == 'Doctors':
-            sheet = self.wb['Departments']
+            sheet = self.workbook['Departments']
             for i in range(1,sheet.max_row+1):
                 if sheet.cell(row=i,column=2).value == data[1]: return True
             else:
@@ -108,7 +108,7 @@ class Hospital:
                 print('*****please add the department first.*****')
                 return False
         else:
-            sheet = self.wb['Doctors']
+            sheet = self.workbook['Doctors']
             for i in range(1,sheet.max_row+1):
                 if sheet.cell(row=i,column=2).value == data[0]: return True
             else:
@@ -120,13 +120,13 @@ class Hospital:
         '''Add a record to a specific sheet.'''
         if(title=='Doctors' or title == 'Appointments'):
            if not self.__create_dependent_field_if_not_exists(title,data): return
-        sheet = self.wb[title]
+        sheet = self.workbook[title]
         max_row = sheet.max_row
         max_id = sheet.cell(row=max_row,column=1).value
         if type(max_id) != int: max_id = 0
         for i in range(len(data)+1):
             sheet.cell(row=max_row+1,column=i+1).value = max_id+1 if i==0  else data[i-1]
-        self.wb.save('db.xlsx')
+        self.workbook.save('db.xlsx')
 
     def __prompt_addition(self,title):
         '''Prompt user input for adding a record in a specific sheet.'''
@@ -149,8 +149,8 @@ class Hospital:
             self.__add_record(title,[n])
 
     def __view(self,title):
-        '''View all records of a specific sheet.'''
-        sheet = self.wb[title]
+        '''View all records of a specific sheet and justifies rows/columns for a better view.'''
+        sheet = self.workbook[title]
         if sheet.max_row==1: print('\n*****No '+title+' registered yet!*****\n'); return
         items = []
         maxLens = []
@@ -173,8 +173,8 @@ class Hospital:
             print(x)
 
     def __delete_record(self,title,id):
-        '''Deletes a record of a specific sheet by id.'''
-        sheet = self.wb[title]
+        '''Deletes a record of a specific sheet by id and brings other rows on step up'''
+        sheet = self.workbook[title]
         if sheet.max_row==1: print('\n*****No '+title+' registered yet!*****\n');return
         for i in range(2,sheet.max_row+1):
             if sheet.cell(row=i,column=1).value == id:
@@ -184,7 +184,7 @@ class Hospital:
                         for k in range(1,sheet.max_column+1):
                             sheet.cell(row=diff,column=k).value = sheet.cell(row=j,column=k).value
                 sheet.delete_rows(sheet.max_row,1)
-                self.wb.save('db.xlsx')
+                self.workbook.save('db.xlsx')
                 break
         else: print('\n*****No '+title+' found with the id '+str(id)+'*****')
 
