@@ -104,10 +104,10 @@ class Hospital:
             d = self.validate('department',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Department! department should start with character')
             self.add_record(title,[n,d])
         elif title == 'Appointments':
-            d = self.validate('doctor name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
+            dc = self.validate('doctor name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
             p = self.validate('patient name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
-            d = self.validate('date',re.compile(r'[0-9]{4}-[0-9]{1-2}-[0-9]{1-2}'),'Invalid Date! date should follow this format yyyy-mm-dd')
-            self.add_record(title,[d,p,d])
+            d = self.validate('date',re.compile(r'^[0-9]{4}.[0-1]?[0-9].[0-3]?[0-9]$'),'Invalid Date! date should follow this format yyyy-mm-dd')
+            self.add_record(title,[dc,p,d])
         elif title == 'Departments':
             n = self.validate('department name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
             self.add_record(title,[n])
@@ -145,10 +145,10 @@ class Hospital:
                         diff = (j-i-1)+i
                         for k in range(1,sheet.max_column+1):
                             sheet.cell(row=diff,column=k).value = sheet.cell(row=j,column=k).value
-                for z in range(1,sheet.max_column+1):
-                    sheet.cell(row=sheet.max_row,column=z).value=''
+                sheet.delete_rows(sheet.max_row,1)
                 self.wb.save('db.xlsx')
                 break
+        else: print('\nNo '+title+' found with the id '+str(id)+'.')
 
 
     def start(self):

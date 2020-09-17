@@ -27,7 +27,7 @@ pip3 install openpyxl==2.6.2
 #in your python file add the following codes
 from hospital import Hospital
 
-app = Wiki()
+app = Hospital()
 app.start()
 ```
 
