@@ -1,15 +1,17 @@
 import os
 import openpyxl as xl
 from openpyxl.styles import Font
+from datetime import date
 import re
 
 class Hospital:
     def __init__(self):
        self.boldFont = Font(bold=True)
        self.sheets = ['Auth','Patients','Doctors','Departments','Appointments']
-       self.wb = self.create_db_if_not_exists()
+       self.wb = self.__create_db_if_not_exists()
 
-    def create_db_if_not_exists(self):
+    def __create_db_if_not_exists(self):
+        '''creates and initializes the excel file if not exists.'''
         if not os.path.isfile('db.xlsx'):
             wb = xl.Workbook()
             for i in range(len(self.sheets)):
@@ -47,44 +49,77 @@ class Hospital:
             return wb
         else: return xl.load_workbook('db.xlsx')
 
-    def validate(self,field,pattern,err):
+    def __validate(self,field,pattern,err):
+        '''Validates user input based on a pattern.'''
         while True:
             x = input('\nEnter '+field+': ')
             if pattern.match(str(x)): return x
             else: print(err)
 
-    def authenticate(self,level,pwd):
+    def __authenticate(self,level,pwd):
+        '''Authenticates Admin/User by password.'''
         auth = self.wb['Auth']
         return auth[level].value == pwd
 
-    def show_main_menu(self):
+    def __show_admin_menu(self):
+        '''Shows management menu for the Admin.'''
         while True:
             if self.rule=='admin':
                 x = input('\n1: Manage patients\n2: Manage doctors\n3: Manage appointments\n4: Manage departments\n0: To go back\n\n'+self.rule+'$ ')
                 if x=='0': break
-                elif x == '1':  self.show_admin_menu('Patients')
-                elif x == '2':  self.show_admin_menu('Doctors')
-                elif x == '3':  self.show_admin_menu('Appointments')
-                elif x == '4':  self.show_admin_menu('Departments')
-                else: print('\nInvalid input!\n')    
+                elif x == '1':  self.__show_action_menu('Patients')
+                elif x == '2':  self.__show_action_menu('Doctors')
+                elif x == '3':  self.__show_action_menu('Appointments')
+                elif x == '4':  self.__show_action_menu('Departments')
+                else: print('\n*****Invalid input!*****\n')    
             else: 
                 x = input('\n1: View patients\n2: View doctors\n3: View appointments\n4: View departments\n0: To go back\n\n'+self.rule+'$ ')
                 if x=='0': break
                 elif x=='1':
-                    self.view('Patients')
+                    self.__view('Patients')
+                elif x=='2':
+                    self.__view('Doctors')
+                elif x=='3':
+                    self.__view('Appointments')
+                elif x=='4':
+                    self.__view('Departments')
+                else: print('\n*****Invalid input!*****')    
 
-    def show_admin_menu(self,title):
+    def __show_action_menu(self,title):
+        '''Shows action menu in admin menu items.'''
         while True:
             x = input('\n1: Add '+title+'\n2: Delete '+title+'\n3: View all '+title+'\n0: To go back\n\n'+self.rule+'$ ')
             if x == '0': break
-            elif x == '1': self.prompt_addition(title)
+            elif x == '1': self.__prompt_addition(title)
             elif x == '2': 
-                x = self.validate(title+' id',re.compile(r'\d+'),'Invalid ID! id must be a number')
-                self.delete_record(title,int(x))
-            elif x == '3': self.view(title)
-            else: print('\nInvalid input!\n')
+                x = self.__validate(title+' id',re.compile(r'\d+'),'*****Invalid ID! id must be a number*****')
+                self.__delete_record(title,int(x))
+            elif x == '3': self.__view(title)
+            else: print('\n*****Invalid input!*****\n')
 
-    def add_record(self,title,data):
+    def __create_dependent_field_if_not_exists(self,title,data):
+        '''Checks if some dependent field of a sheet exists in its own sheet.'''
+        if title == 'Doctors':
+            sheet = self.wb['Departments']
+            for i in range(1,sheet.max_row+1):
+                if sheet.cell(row=i,column=2).value == data[1]: return True
+            else:
+                print('\n*****No department registerd with the name of '+data[1]+'*****')
+                print('*****please add the department first.*****')
+                return False
+        else:
+            sheet = self.wb['Doctors']
+            for i in range(1,sheet.max_row+1):
+                if sheet.cell(row=i,column=2).value == data[0]: return True
+            else:
+                print('\n*****No doctor registerd with the name of '+data[0]+'*****')
+                print('*****please add the doctor first.*****')
+                return False
+
+    def __add_record(self,title,data):
+        '''Add a record to a specific sheet.'''
+        if(title=='Doctors' or title == 'Appointments'):
+           if not self.__create_dependent_field_if_not_exists(title,data): return
         sheet = self.wb[title]
         max_row = sheet.max_row
         max_id = sheet.cell(row=max_row,column=1).value
@@ -93,28 +128,30 @@ class Hospital:
             sheet.cell(row=max_row+1,column=i+1).value = max_id+1 if i==0  else data[i-1]
         self.wb.save('db.xlsx')
 
-    def prompt_addition(self,title):
+    def __prompt_addition(self,title):
+        '''Prompt user input for adding a record in a specific sheet.'''
         if title == 'Patients':
-            n = self.validate('patient name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
-            ad = self.validate('patient address',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Address! address should start with character')
-            a = self.validate('patient age',re.compile(r'\d+'),'Invalid Age! age must be a number')
-            self.add_record(title,[n,ad,a])
+            n = self.__validate('patient name',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Name! name should start with character*****')
+            ad = self.__validate('patient address',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Address! address should start with character*****')
+            a = self.__validate('patient age',re.compile(r'\d+'),'*****Invalid Age! age must be a number*****')
+            self.__add_record(title,[n,ad,a])
         elif title == 'Doctors':
-            n = self.validate('doctor name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
-            d = self.validate('department',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Department! department should start with character')
-            self.add_record(title,[n,d])
+            n = self.__validate('doctor name',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Name! name should start with character*****')
+            d = self.__validate('department',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Department! department should start with character*****')
+            self.__add_record(title,[n,d])
         elif title == 'Appointments':
-            dc = self.validate('doctor name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
-            p = self.validate('patient name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
-            d = self.validate('date',re.compile(r'^[0-9]{4}.[0-1]?[0-9].[0-3]?[0-9]$'),'Invalid Date! date should follow this format yyyy-mm-dd')
-            self.add_record(title,[dc,p,d])
+            dc = self.__validate('doctor name',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Name! name should start with character*****')
+            p = self.__validate('patient name',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Name! name should start with character*****')
+            d = date.today()
+            self.__add_record(title,[dc,p,d])
         elif title == 'Departments':
-            n = self.validate('department name',re.compile(r'^[a-zA-z]{1}.*'),'Invalid Name! name should start with character')
-            self.add_record(title,[n])
+            n = self.__validate('department name',re.compile(r'^[a-zA-z]{1}.*'),'*****Invalid Name! name should start with character*****')
+            self.__add_record(title,[n])
 
-    def view(self,title):
+    def __view(self,title):
+        '''View all records of a specific sheet.'''
         sheet = self.wb[title]
-        if sheet.max_row==1: print('\n No '+title+' registered yet!\n'); return
+        if sheet.max_row==1: print('\n*****No '+title+' registered yet!*****\n'); return
         items = []
         maxLens = []
         print('\n'+title+'\n')
@@ -135,9 +172,10 @@ class Hospital:
                 x += str(items[j][i]).ljust(maxLens[j]+10)
             print(x)
 
-    def delete_record(self,title,id):
+    def __delete_record(self,title,id):
+        '''Deletes a record of a specific sheet by id.'''
         sheet = self.wb[title]
-        if sheet.max_row==1: print('\nNo '+title+' registered yet!\n');return
+        if sheet.max_row==1: print('\n*****No '+title+' registered yet!*****\n');return
         for i in range(2,sheet.max_row+1):
             if sheet.cell(row=i,column=1).value == id:
                 if i < sheet.max_row:
@@ -148,27 +186,28 @@ class Hospital:
                 sheet.delete_rows(sheet.max_row,1)
                 self.wb.save('db.xlsx')
                 break
-        else: print('\nNo '+title+' found with the id '+str(id)+'.')
+        else: print('\n*****No '+title+' found with the id '+str(id)+'*****')
 
 
     def start(self):
+        '''Program entry point.'''
         while True:
             print('\n\n\n',' Hospital Management System '.center(46,'*'))
             print('\n\n','Select your rule'.center(36,'-'))
             print('\n1: Admin\n2: User\n\nEnter Q to quit.\n')
             x = input('')
-            if x == 'q' or x=='Q': print('\nbye.\n'); break
+            if x == 'q' or x=='Q': print('\n*****bye*****.\n'); break
             elif x=='1':
                 while True:
                     a = input('\nEnter Admin Password: ')
-                    if self.authenticate('B2',a): self.rule = 'admin'; self.show_main_menu(); break
-                    else: print('\nIncorrect password!\n')
+                    if self.__authenticate('B2',a): self.rule = 'admin'; self.__show_admin_menu(); break
+                    else: print('\n*****Incorrect password!*****\n')
             elif x=='2':
                 while True:
                     u = input('\nEnter User Password: ')
-                    if self.authenticate('B3',u): self.rule = 'user'; self.show_main_menu(); break
-                    else: print('\nIncorrect password!\n')
-            else: print('\nInvalid input!\n')
+                    if self.__authenticate('B3',u): self.rule = 'user'; self.__show_admin_menu(); break
+                    else: print('\n*****Incorrect password!*****\n')
+            else: print('\n*****Invalid input!*****\n')
 
     
         

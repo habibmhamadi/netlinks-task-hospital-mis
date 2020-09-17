@@ -23,7 +23,8 @@ pip3 install openpyxl==2.6.2
 ## Usage
 
 ```python
-#create a python file in the same directory
+#clone the repo
+#create a python file inside the directory
 #in your python file add the following codes
 from hospital import Hospital
 
